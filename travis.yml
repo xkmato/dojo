@@ -1,0 +1,11 @@
+language: python
+python:
+  - "3.5"
+install:
+    - pip install -r requirements.txt
+env:
+  - DB=sqlite
+script:
+  - nosetests --with-coverage --cover-package=models
+after_success: coveralls
+cache: pip
