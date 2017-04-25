@@ -6,6 +6,6 @@ install:
 env:
   - DB=sqlite
 script:
-  - nosetests --with-coverage --cover-package=models
+  - nosetests
 after_success: coveralls
 cache: pip
