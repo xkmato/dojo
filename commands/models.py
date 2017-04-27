@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, String, create_engine, ForeignKey
+from sqlalchemy import Column, Integer, String, create_engine, ForeignKey, or_
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
 engine = create_engine('sqlite:///:memory:')
@@ -13,19 +13,27 @@ class Person(Base):
     __tablename__ = 'people'
 
     STAFF = 'staff'
-    FELLOW = 'fellows'
+    FELLOW = 'fellow'
     ROLES = [STAFF, FELLOW]
 
     id = Column(Integer, primary_key=True)
     name = Column(String(250))
     role = Column(String(250))
-    room_id = Column(Integer, nullable=True)
+    office_id = Column(Integer, nullable=True)
+    living_space_id = Column(Integer, nullable=True)
 
     __mapper_args__ = {
         'polymorphic_identity': 'people',
         'polymorphic_on': role,
         'with_polymorphic': '*'
     }
+    @property
+    def office(self):
+        return session.query(Office).get(self.office_id)
+
+    @property
+    def living_space(self):
+        return session.query(LivingSpace).get(self.living_space_id)
 
     def save(self):
         session.add(self)
@@ -33,8 +41,14 @@ class Person(Base):
         return self
 
     def add_to_room(self, room):
-        self.room_id = room.id
-        self.save()
+        if room.available_seats > 0:
+            room.reduce_available_seats()
+            if room.room_type == Room.OFFICE:
+                self.office_id = room.id
+            else:
+                self.living_space_id = room.id
+            self.save()
+
 
     @classmethod
     def all(cls):
@@ -49,6 +63,16 @@ class Person(Base):
         else:
             person = Fellow.create(name)
         return person
+
+    @classmethod
+    def add_person(cls, first_name, last_name, role, wants_accommodation=False):
+        name = "%s %s" % (first_name, last_name)
+        person = cls.create(name, role)
+        room = Office.get_or_create(name)
+        person.add_to_room(room)
+        if wants_accommodation and role == Person.FELLOW:
+            room = LivingSpace.get_or_create(name)
+            person.add_to_room(room)
 
 
 class Fellow(Person):
@@ -85,44 +109,62 @@ class Dojo(object):
 class Room(Base):
     __tablename__ = 'rooms'
 
-    OFFICE = 'offices'
-    LIVING_SPACE = 'living spaces'
+    OFFICE = 'office'
+    LIVING_SPACE = 'living space'
     KINDS = [OFFICE, LIVING_SPACE]
 
     id = Column(Integer, primary_key=True)
     name = Column(String(250))
-    kind = Column(String(250))
+    room_type = Column(String(250))
 
     __mapper_args__ = {
         'polymorphic_identity': 'rooms',
-        'polymorphic_on': kind,
+        'polymorphic_on': room_type,
         'with_polymorphic': '*'
     }
+
+    def reduce_available_seats(self):
+        self.available_seats -= 1
+        self.save()
 
     def save(self):
         session.add(self)
         session.commit()
         return self
 
+    def get_people(self):
+        return session.query(Person).filter(or_(Person.office_id == self.id, Person.living_space_id == self.id))
+
+    @classmethod
+    def get_or_create(cls, name=None):
+        available = session.query(cls).filter(cls.available_seats > 0).one()
+        if available:
+            return available
+        return cls.create(name)
+
     @classmethod
     def all(cls):
         return session.query(cls)
 
     @classmethod
-    def create(cls, name, kind):
-        if kind not in cls.KINDS:
-            raise ValueError("Kind must be either of %s" % " or ".join(cls.KINDS))
-        if kind == cls.LIVING_SPACE:
+    def create(cls, name, room_type):
+        if room_type not in cls.KINDS:
+            raise ValueError("Room Type must be either of %s" % " or ".join(cls.KINDS))
+        if room_type == cls.LIVING_SPACE:
             return LivingSpace.create(name)
-        if kind == cls.OFFICE:
+        if room_type == cls.OFFICE:
             return Office.create(name)
+
+    @classmethod
+    def create_multiple(cls, room_type, room_names):
+        return [cls.create(name, room_type) for name in room_names]
 
 
 class Office(Room):
     __tablename__ = "offices"
 
     id = Column(Integer, ForeignKey('rooms.id'), primary_key=True)
-    unused_seats = Column(Integer, default=6)
+    available_seats = Column(Integer, default=6)
 
     @classmethod
     def create(cls, name):
@@ -133,8 +175,10 @@ class LivingSpace(Room):
     __tablename__ = "living_spaces"
 
     id = Column(Integer, ForeignKey('rooms.id'), primary_key=True)
-    unused_seats = Column(Integer, default=4)
+    available_seats = Column(Integer, default=4)
 
     @classmethod
     def create(cls, name):
         return cls(name=name).save()
+
+Base.metadata.create_all()
