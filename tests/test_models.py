@@ -1,12 +1,12 @@
 from unittest import TestCase
-from models import Person, Fellow, Staff, Base, Room, Office, LivingSpace, engine
+
+from commands.models import Person, Fellow, Staff, Base, Room, Office, LivingSpace, engine
 
 
 class PersonTestCase(TestCase):
     def setUp(self):
         Base.metadata.create_all(engine)
-        self.person = Person(name="Some Name", role="staff")
-        self.person.save()
+        self.person = Person.create("Some Name", "staff")
 
     def tearDown(self):
         Base.metadata.drop_all(engine)
@@ -40,6 +40,27 @@ class PersonTestCase(TestCase):
         current_count = Person.all().count()
         Person.create("New Person", 'fellows')
         self.assertEqual(Person.all().count(), current_count+1)
+
+    def test_add_to_room(self):
+        self.assertEqual(self.person.room_id, None)
+        room = Office.create("New Room")
+        self.person.add_to_room(room)
+        self.assertEqual(self.person.room_id, room.id)
+
+    def test_add_fellow_with_location_request(self):
+        current_count = Person.all().count()
+        person = Person.add_person("Kenneth", "Matovu", "Staff", wants_accommodation=True)
+        self.assertEqual(current_count + 1, Person.all().count())
+        self.assertIsNotNone(person.office_id)
+        self.assertIsNotNone(person.living_space_id)
+
+    def test_office_and_living_space(self):
+        office = Office.create("New Office")
+        ls = LivingSpace.create("New Living Space")
+        self.person.add_to_room(office)
+        self.person.add_to_room(ls)
+        self.assertEqual(self.person.office, office)
+        self.assertEqual(self.person.living_space, ls)
 
 
 class FellowTestCase(TestCase):
@@ -104,10 +125,16 @@ class RoomTestCase(TestCase):
     def tearDown(self):
         Base.metadata.drop_all(engine)
 
+    def test_create_multiple(self):
+        current_count = Room.all().count()
+        new_rooms = ["office1", "office2", "office3"]
+        Room.create_multiple("offices", new_rooms)
+        self.assertEqual(Room.all().count(), current_count+len(new_rooms))
+
     def test_class_has_required_attributes(self):
         self.assertTrue(hasattr(Room, 'id'))
         self.assertTrue(hasattr(Room, 'name'))
-        self.assertTrue(hasattr(Room, 'kind'))
+        self.assertTrue(hasattr(Room, 'room_type'))
         self.assertTrue(hasattr(Room, '__table__'))
 
     def test_class_attributes_mapped_to_right_db_types(self):
@@ -132,6 +159,14 @@ class RoomTestCase(TestCase):
         current_count = Room.all().count()
         Room.create("New Room", 'living spaces')
         self.assertEqual(Room.all().count(), current_count+1)
+
+    def test_get_people(self):
+        office = Office.create("office1")
+        staff = Staff.create("New Staff")
+        fellow = Fellow.create("New Fellow")
+        staff.add_to_room(office)
+        fellow.add_to_room(office)
+        self.assertListEqual([fellow, staff], office.get_people().all())
 
 
 class OfficeTestCase(TestCase):
