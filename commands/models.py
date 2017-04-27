@@ -41,6 +41,14 @@ class Person(Base):
     def living_space(self):
         return session.query(LivingSpace).get(self.living_space_id)
 
+    def relocate(self, room_name):
+        room = Room.get_by_name(room_name)
+        if room.room_type == Room.OFFICE:
+            self.office_id = room.id
+        else:
+            self.living_space_id = room.id
+        self.save()
+
     def save(self):
         session.add(self)
         session.commit()
@@ -71,7 +79,9 @@ class Person(Base):
 
     @classmethod
     def add_person(cls, first_name, last_name, role, wants_accommodation=False):
-        name = "%s %s" % (first_name, last_name)
+        if wants_accommodation == 'Y':
+            wants_accommodation = True
+        name = "%s %s" % (first_name.capitalize(), last_name.capitalize())
         role = role.lower()
         person = cls.create(name, role)
         room = Office.get_or_create(name)
@@ -89,8 +99,26 @@ class Person(Base):
                 allocations.append((person.name, person.office.name, person.living_space.name))
             else:
                 allocations.append((person.name, person.office.name, "No"))
-        print(allocations)
         return allocations
+
+    @classmethod
+    def load_people(cls, people):
+        rooms = {}
+
+        def add_to_rooms(room, _person):
+            if room.name in rooms:
+                rooms[room.name].append(_person.name)
+            else:
+                rooms[room.name] = [_person.name]
+
+        for person in people:
+            _p = Person.add_person(*[p.strip() for p in person.split()])
+            if _p.office_id:
+                add_to_rooms(_p.office, _p)
+            if _p.living_space_id:
+                add_to_rooms(_p.living_space, _p)
+
+        return rooms
 
 
 class Fellow(Person):
