@@ -12,6 +12,8 @@ session = DBSession()
 
 
 class Person(Base):
+    """Person Model for either Staff or Fellow"""
+
     __tablename__ = 'people'
 
     STAFF = 'staff'
@@ -42,6 +44,8 @@ class Person(Base):
         return session.query(LivingSpace).get(self.living_space_id)
 
     def relocate(self, room_name):
+        """Relocate user to different Room"""
+
         room = Room.get_by_name(room_name)
         if room.room_type == Room.OFFICE:
             self.office_id = room.id
@@ -55,6 +59,7 @@ class Person(Base):
         return self
 
     def add_to_room(self, room):
+        """Add user to Room """
         if room.available_seats > 0:
             room.reduce_available_seats()
             if room.room_type == Room.OFFICE:
@@ -65,10 +70,14 @@ class Person(Base):
 
     @classmethod
     def all(cls):
+        """Return QuerySet of all users"""
+
         return session.query(cls)
 
     @classmethod
     def create(cls, name, role):
+        """Create New Person"""
+
         if role not in cls.ROLES:
             raise ValueError("Role should be either of %s" % " or ".join(cls.ROLES))
         if role == cls.STAFF:
@@ -79,6 +88,8 @@ class Person(Base):
 
     @classmethod
     def add_person(cls, first_name, last_name, role, wants_accommodation=False):
+        """Adding person with Rooms f available """
+
         if wants_accommodation == 'Y':
             wants_accommodation = True
         name = "%s %s" % (first_name.capitalize(), last_name.capitalize())
@@ -93,6 +104,8 @@ class Person(Base):
 
     @classmethod
     def get_allocations(cls):
+        """Return Person and Room they are assigned to"""
+
         allocations = []
         for person in Person.all():
             if person.living_space_id:
@@ -103,6 +116,8 @@ class Person(Base):
 
     @classmethod
     def load_people(cls, people):
+        """Load multiple people from a file"""
+
         rooms = {}
 
         def add_to_rooms(room, _person):
@@ -122,6 +137,8 @@ class Person(Base):
 
 
 class Fellow(Person):
+    """This is class that represents a fellow"""
+
     __tablename__ = 'fellow'
 
     id = Column(Integer, ForeignKey('people.id'), primary_key=True)
@@ -132,10 +149,14 @@ class Fellow(Person):
 
     @classmethod
     def create(cls, name, role=Person.FELLOW):
+        """Method for creating a Fellow"""
+
         return cls(name=name, role=role).save()
 
 
 class Staff(Person):
+    """Class that represents Staff"""
+
     __tablename__ = 'staff'
 
     id = Column(Integer, ForeignKey('people.id'), primary_key=True)
@@ -145,6 +166,8 @@ class Staff(Person):
 
     @classmethod
     def create(cls, name, role=Person.STAFF):
+        """Method for creating a Staff"""
+
         return cls(name=name, role=role).save()
 
 
@@ -153,6 +176,8 @@ class Dojo(object):
 
 
 class Room(Base):
+    """Class that Represents Room"""
+
     __tablename__ = 'rooms'
 
     OFFICE = 'office'
@@ -171,19 +196,27 @@ class Room(Base):
     }
 
     def reduce_available_seats(self):
+        """Reduce number of available seats by one whenever a new user is added"""
+
         self.available_seats -= 1
         self.save()
 
     def save(self):
+        """Method to save Object into db. Does both update and insert SQL Queries"""
+
         session.add(self)
         session.commit()
         return self
 
     def get_people(self):
+        """Return people in this Room"""
+
         return session.query(Person).filter(or_(Person.office_id == self.id, Person.living_space_id == self.id))
 
     @classmethod
     def get_or_create(cls, name=None):
+        """Get available Room or Create a new one"""
+
         available = session.query(cls).filter(cls.available_seats > 0).first()
         if available:
             return available
@@ -192,10 +225,14 @@ class Room(Base):
 
     @classmethod
     def all(cls):
+        """Return QuerySet of all Rooms"""
+
         return session.query(cls)
 
     @classmethod
     def create(cls, name, room_type):
+        """Method to create New room"""
+
         if room_type not in cls.KINDS:
             raise ValueError("Room Type must be either of %s" % " or ".join(cls.KINDS))
         if room_type == cls.LIVING_SPACE:
@@ -205,14 +242,20 @@ class Room(Base):
 
     @classmethod
     def create_multiple(cls, room_type, room_names):
+        """Create multiple rooms of the same type"""
+
         return [cls.create(name, room_type) for name in room_names]
 
     @classmethod
     def get_by_name(cls, name):
+        """Return a room with NAME"""
+
         return session.query(cls).filter(cls.name == name).first()
 
 
 class Office(Room):
+    """Class that Represents an Office"""
+
     __tablename__ = "office"
 
     id = Column(Integer, ForeignKey('rooms.id'), primary_key=True)
@@ -224,10 +267,14 @@ class Office(Room):
 
     @classmethod
     def create(cls, name, room_type=Room.OFFICE):
+        """Create new office"""
+
         return cls(name=name, room_type=room_type).save()
 
 
 class LivingSpace(Room):
+    """Class that represents a Living Space"""
+
     __tablename__ = "living_space"
 
     id = Column(Integer, ForeignKey('rooms.id'), primary_key=True)
@@ -239,6 +286,8 @@ class LivingSpace(Room):
 
     @classmethod
     def create(cls, name, room_type=Room.LIVING_SPACE):
+        """Create new living space"""
+
         return cls(name=name, room_type=room_type).save()
 
 Base.metadata.create_all()
