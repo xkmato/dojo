@@ -76,6 +76,20 @@ class PersonTestCase(TestCase):
         self.assertEqual(self.person.office, office)
         self.assertEqual(self.person.living_space, ls)
 
+    def test_relocate_person(self):
+        person = Person.add_person("New", "Per", 'staff')
+        office = Office.create("R Office")
+        print(office.id, office.name)
+        self.assertNotEqual(person.office.id, office.id)
+        person.relocate("R Office")
+        self.assertEqual(person.office.id, office.id)
+
+    def test_load_people(self):
+        current_count = Person.all().count()
+        new_people = ['OLUWAFEMI SULE FELLOW Y', 'DOMINIC WALTERS STAFF', 'SIMON PATTERSON FELLOW Y']
+        Person.load_people(new_people)
+        self.assertEqual(Person.all().count(), current_count + len(new_people))
+
 
 class FellowTestCase(TestCase):
     def setUp(self):
@@ -182,6 +196,10 @@ class RoomTestCase(TestCase):
         fellow.add_to_room(office)
         self.assertIn(fellow, office.get_people().all())
         self.assertIn(staff, office.get_people().all())
+
+    def test_get_by_name(self):
+        office = Office.create("office1")
+        self.assertEqual(office, Office.get_by_name('office1'))
 
 
 class OfficeTestCase(TestCase):

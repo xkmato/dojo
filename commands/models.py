@@ -19,7 +19,7 @@ class Person(Base):
     ROLES = [STAFF, FELLOW]
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(250))
+    name = Column(String(250), unique=True)
     role = Column(String(250))
     office_id = Column(Integer, nullable=True)
     living_space_id = Column(Integer, nullable=True)
@@ -40,6 +40,14 @@ class Person(Base):
     @property
     def living_space(self):
         return session.query(LivingSpace).get(self.living_space_id)
+
+    def relocate(self, room_name):
+        room = Room.get_by_name(room_name)
+        if room.room_type == Room.OFFICE:
+            self.office_id = room.id
+        else:
+            self.living_space_id = room.id
+        self.save()
 
     def save(self):
         session.add(self)
@@ -71,7 +79,9 @@ class Person(Base):
 
     @classmethod
     def add_person(cls, first_name, last_name, role, wants_accommodation=False):
-        name = "%s %s" % (first_name, last_name)
+        if wants_accommodation == 'Y':
+            wants_accommodation = True
+        name = "%s %s" % (first_name.capitalize(), last_name.capitalize())
         role = role.lower()
         person = cls.create(name, role)
         room = Office.get_or_create(name)
@@ -80,6 +90,35 @@ class Person(Base):
             room = LivingSpace.get_or_create(name)
             person.add_to_room(room)
         return person
+
+    @classmethod
+    def get_allocations(cls):
+        allocations = []
+        for person in Person.all():
+            if person.living_space_id:
+                allocations.append((person.name, person.office.name, person.living_space.name))
+            else:
+                allocations.append((person.name, person.office.name, "No"))
+        return allocations
+
+    @classmethod
+    def load_people(cls, people):
+        rooms = {}
+
+        def add_to_rooms(room, _person):
+            if room.name in rooms:
+                rooms[room.name].append(_person.name)
+            else:
+                rooms[room.name] = [_person.name]
+
+        for person in people:
+            _p = Person.add_person(*[p.strip() for p in person.split()])
+            if _p.office_id:
+                add_to_rooms(_p.office, _p)
+            if _p.living_space_id:
+                add_to_rooms(_p.living_space, _p)
+
+        return rooms
 
 
 class Fellow(Person):
@@ -121,7 +160,8 @@ class Room(Base):
     KINDS = [OFFICE, LIVING_SPACE]
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(250))
+    name = Column(String(250), unique=True)
+    available_seats = Column(Integer)
     room_type = Column(String(250))
 
     __mapper_args__ = {
@@ -166,6 +206,10 @@ class Room(Base):
     @classmethod
     def create_multiple(cls, room_type, room_names):
         return [cls.create(name, room_type) for name in room_names]
+
+    @classmethod
+    def get_by_name(cls, name):
+        return session.query(cls).filter(cls.name == name).first()
 
 
 class Office(Room):
