@@ -19,7 +19,7 @@ class Person(Base):
     ROLES = [STAFF, FELLOW]
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(250))
+    name = Column(String(250), unique=True)
     role = Column(String(250))
     office_id = Column(Integer, nullable=True)
     living_space_id = Column(Integer, nullable=True)
@@ -81,6 +81,17 @@ class Person(Base):
             person.add_to_room(room)
         return person
 
+    @classmethod
+    def get_allocations(cls):
+        allocations = []
+        for person in Person.all():
+            if person.living_space_id:
+                allocations.append((person.name, person.office.name, person.living_space.name))
+            else:
+                allocations.append((person.name, person.office.name, "No"))
+        print(allocations)
+        return allocations
+
 
 class Fellow(Person):
     __tablename__ = 'fellow'
@@ -121,7 +132,8 @@ class Room(Base):
     KINDS = [OFFICE, LIVING_SPACE]
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(250))
+    name = Column(String(250), unique=True)
+    available_seats = Column(Integer)
     room_type = Column(String(250))
 
     __mapper_args__ = {
@@ -166,6 +178,10 @@ class Room(Base):
     @classmethod
     def create_multiple(cls, room_type, room_names):
         return [cls.create(name, room_type) for name in room_names]
+
+    @classmethod
+    def get_by_name(cls, name):
+        return session.query(cls).filter(cls.name == name).first()
 
 
 class Office(Room):

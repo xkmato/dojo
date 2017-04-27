@@ -183,6 +183,10 @@ class RoomTestCase(TestCase):
         self.assertIn(fellow, office.get_people().all())
         self.assertIn(staff, office.get_people().all())
 
+    def test_get_by_name(self):
+        office = Office.create("office1")
+        self.assertEqual(office, Office.get_by_name('office1'))
+
 
 class OfficeTestCase(TestCase):
     def setUp(self):
