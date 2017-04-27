@@ -27,6 +27,10 @@ class Person(Base):
         'polymorphic_on': role,
         'with_polymorphic': '*'
     }
+
+    def __eq__(self, other):
+        return self.id == other.id and isinstance(self, Person)
+
     @property
     def office(self):
         return session.query(Office).get(self.office_id)
@@ -41,6 +45,8 @@ class Person(Base):
         return self
 
     def add_to_room(self, room):
+        print(room.available_seats)
+        print(room.id, room.room_type, room.name)
         if room.available_seats > 0:
             room.reduce_available_seats()
             if room.room_type == Room.OFFICE:
@@ -67,26 +73,28 @@ class Person(Base):
     @classmethod
     def add_person(cls, first_name, last_name, role, wants_accommodation=False):
         name = "%s %s" % (first_name, last_name)
+        role = role.lower()
         person = cls.create(name, role)
         room = Office.get_or_create(name)
         person.add_to_room(room)
         if wants_accommodation and role == Person.FELLOW:
             room = LivingSpace.get_or_create(name)
             person.add_to_room(room)
+        return person
 
 
 class Fellow(Person):
-    __tablename__ = 'fellows'
+    __tablename__ = 'fellow'
 
     id = Column(Integer, ForeignKey('people.id'), primary_key=True)
 
     __mapper_args__ = {
-        'polymorphic_identity': 'fellows',
+        'polymorphic_identity': 'fellow',
     }
 
     @classmethod
-    def create(cls, name):
-        return cls(name=name).save()
+    def create(cls, name, role=Person.FELLOW):
+        return cls(name=name, role=role).save()
 
 
 class Staff(Person):
@@ -98,8 +106,8 @@ class Staff(Person):
     }
 
     @classmethod
-    def create(cls, name):
-        return cls(name=name).save()
+    def create(cls, name, role=Person.STAFF):
+        return cls(name=name, role=role).save()
 
 
 class Dojo(object):
@@ -137,7 +145,7 @@ class Room(Base):
 
     @classmethod
     def get_or_create(cls, name=None):
-        available = session.query(cls).filter(cls.available_seats > 0).one()
+        available = session.query(cls).filter(cls.available_seats > 0).one_or_none()
         if available:
             return available
         return cls.create(name)
@@ -161,24 +169,32 @@ class Room(Base):
 
 
 class Office(Room):
-    __tablename__ = "offices"
+    __tablename__ = "office"
 
     id = Column(Integer, ForeignKey('rooms.id'), primary_key=True)
     available_seats = Column(Integer, default=6)
 
+    __mapper_args__ = {
+        'polymorphic_identity': 'office',
+    }
+
     @classmethod
-    def create(cls, name):
-        return cls(name=name).save()
+    def create(cls, name, room_type=Room.OFFICE):
+        return cls(name=name, room_type=room_type).save()
 
 
 class LivingSpace(Room):
-    __tablename__ = "living_spaces"
+    __tablename__ = "living_space"
 
     id = Column(Integer, ForeignKey('rooms.id'), primary_key=True)
     available_seats = Column(Integer, default=4)
 
+    __mapper_args__ = {
+        'polymorphic_identity': 'living_space',
+    }
+
     @classmethod
-    def create(cls, name):
-        return cls(name=name).save()
+    def create(cls, name, room_type=Room.LIVING_SPACE):
+        return cls(name=name, room_type=room_type).save()
 
 Base.metadata.create_all()
