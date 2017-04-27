@@ -171,7 +171,7 @@ class RoomTestCase(TestCase):
 
     def test_create(self):
         current_count = Room.all().count()
-        Room.create("New Room", 'living space')
+        Room.create("New Room", 'living_space')
         self.assertEqual(Room.all().count(), current_count+1)
 
     def test_get_people(self):
