@@ -61,4 +61,6 @@ target/
 #PyCharm
 .idea
 
+#DB
+dojo.db*
 # Created by .ignore support plugin (hsz.mobi)
