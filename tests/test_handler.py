@@ -1,6 +1,6 @@
 from unittest import TestCase
+from commands.handler import handle
 from commands.models import Office, Person
-from dojo import handle
 
 
 class DojoTestCase(TestCase):
