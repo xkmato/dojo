@@ -1,3 +1,5 @@
+import random
+import string
 from sqlalchemy import Column, Integer, String, create_engine, ForeignKey, or_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -29,7 +31,7 @@ class Person(Base):
     }
 
     def __eq__(self, other):
-        return self.id == other.id and isinstance(self, Person)
+        return self.id == other.id and isinstance(self, Person) and isinstance(other, Person)
 
     @property
     def office(self):
@@ -45,8 +47,6 @@ class Person(Base):
         return self
 
     def add_to_room(self, room):
-        print(room.available_seats)
-        print(room.id, room.room_type, room.name)
         if room.available_seats > 0:
             room.reduce_available_seats()
             if room.room_type == Room.OFFICE:
@@ -54,7 +54,6 @@ class Person(Base):
             else:
                 self.living_space_id = room.id
             self.save()
-
 
     @classmethod
     def all(cls):
@@ -118,7 +117,7 @@ class Room(Base):
     __tablename__ = 'rooms'
 
     OFFICE = 'office'
-    LIVING_SPACE = 'living space'
+    LIVING_SPACE = 'living_space'
     KINDS = [OFFICE, LIVING_SPACE]
 
     id = Column(Integer, primary_key=True)
@@ -148,6 +147,7 @@ class Room(Base):
         available = session.query(cls).filter(cls.available_seats > 0).one_or_none()
         if available:
             return available
+        name = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
         return cls.create(name)
 
     @classmethod
