@@ -144,7 +144,7 @@ class Room(Base):
 
     @classmethod
     def get_or_create(cls, name=None):
-        available = session.query(cls).filter(cls.available_seats > 0).one_or_none()
+        available = session.query(cls).filter(cls.available_seats > 0).first()
         if available:
             return available
         name = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
