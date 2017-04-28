@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from commands.models import Person, Fellow, Staff, Base, Room, Office, LivingSpace, engine
+from app.models import Person, Fellow, Staff, Base, Room, Office, LivingSpace, engine
 
 
 class PersonTestCase(TestCase):

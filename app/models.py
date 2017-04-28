@@ -5,7 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
-engine = create_engine('sqlite:///dojo.db')
+engine = create_engine('sqlite:///:memory:')
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()

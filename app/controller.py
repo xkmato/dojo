@@ -1,5 +1,5 @@
 from shutil import copyfile
-from commands.models import Person, Room
+from app.models import Person, Room
 
 
 def handle(_arguments):
@@ -32,7 +32,14 @@ def handle(_arguments):
             return ['Ooops.. Room Does not exist']
 
         elif _arguments.get('print_allocations'):
-            return ["%s in %s Office and %s Living Space" % allocation for allocation in Person.get_allocations()]
+            allocations = ["%s in %s Office and %s Living Space" % allocation for allocation in
+                           Person.get_allocations()]
+            if '--o' in _arguments:
+                file = open(_arguments.get('--o'), 'w')
+                file.write("\n".join(allocations))
+                file.close()
+                return ["Allocations written to %s file" % _arguments.get('--o')]
+            return allocations
 
         elif _arguments.get('relocate_person'):
             person = Person.all().get(int(_arguments.get("<person_identifier>")))

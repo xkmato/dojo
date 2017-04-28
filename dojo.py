@@ -6,7 +6,7 @@ Usage:
   dojo add_person <first_name> <last_name> <role> [<wants_accommodation>]
   dojo print_room <room_name>
   dojo relocate <person_identifier> <new_room_name>
-  dojo print_allocations [-o=FILENAME]
+  dojo print_allocations [--o=FILENAME]
   dojo add_people <file_name>
   dojo load_state <sqlite_database>
   dojo save_state [--db=sqlite_database]
@@ -65,49 +65,49 @@ class DojoInterface (cmd.Cmd):
         """Usage: create_room <room_type> <room_name>..."""
 
         arg.update(dict(create_room=True))
-        print(handle(arg))
+        [print(line) for line in handle(arg)]
 
     @docopt_cmd
-    def do_wants_accommodation(self, arg):
+    def do_add_person(self, arg):
         """Usage: add_person <first_name> <last_name> <role> [<wants_accommodation>]"""
 
         arg.update(dict(add_person=True))
-        print(handle(arg))
+        [print(line) for line in handle(arg)]
 
     @docopt_cmd
     def do_print_room(self, arg):
         """Usage: add_person <room_name> """
 
         arg.update(dict(add_person=True))
-        print(handle(arg))
+        [print(line) for line in handle(arg)]
 
     @docopt_cmd
     def do_print_allocations(self, arg):
-        """Usage: print_allocations [-o=FILENAME] """
+        """Usage: print_allocations [--o=FILENAME] """
 
         arg.update(dict(print_allocations=True))
-        print(handle(arg))
+        [print(line) for line in handle(arg)]
 
     @docopt_cmd
     def do_load_people(self, arg):
         """Usage: load_people <file_name> """
 
         arg.update(dict(load_people=True))
-        print(handle(arg))
+        [print(line) for line in handle(arg)]
 
     @docopt_cmd
     def do_save_state(self, arg):
         """Usage: save_state [--db=sqlite_database] """
 
         arg.update(dict(save_state=True))
-        print(handle(arg))
+        [print(line) for line in handle(arg)]
 
     @docopt_cmd
     def do_load_state(self, arg):
         """Usage: load_state <sqlite_database> """
 
         arg.update(dict(load_state=True))
-        print(print(arg))
+        [print(line) for line in handle(arg)]
 
     def do_quit(self, arg):
         """Quits out of Interactive Mode."""
