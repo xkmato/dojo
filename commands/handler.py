@@ -1,3 +1,4 @@
+from shutil import copyfile
 from commands.models import Person, Room
 
 
@@ -48,7 +49,15 @@ def handle(_arguments):
                 text = "%s\n------------------------------------\n %s" % (key, ", ".join(people[key]))
                 p.append(text)
             return p
+        elif _arguments.get('save_state'):
+            db_file = _arguments.get('--db')
+            copyfile('dojo.db', db_file)
+            return ["Data successfully saved to %s" % db_file]
+        elif _arguments.get('load_state'):
+            db_file = _arguments.get('<sqlite_database>')
+            copyfile(db_file, 'dojo.db')
+            return ["Data successfully loaded from %s" % db_file]
     except KeyboardInterrupt:
         return
     except Exception as e:
-        print("Ooops Something unexpected happened", e)
+        return ["Ooops Something unexpected happened: %s" % str(e)]
