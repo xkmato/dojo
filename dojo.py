@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 """
-This template is mostly borrowed from the official docopt CMD example on GitHub.
+Some of the code in this file is copied as is from docopt CMD example
 Usage:
   dojo create_room <room_type> <room_name>...
   dojo add_person <first_name> <last_name> <role> [<wants_accommodation>]
   dojo print_room <room_name>
   dojo relocate <person_identifier> <new_room_name>
   dojo print_allocations [-o=FILENAME]
-  dojo ad_people <file_name>
+  dojo add_people <file_name>
+  dojo load_state <sqlite_database>
+  dojo save_state [--db=sqlite_database]
   dojo -i
 
 Options:
   -h --help     Show this screen.
-  -o=FILENAME   Path to output file
   --version     Show version.
 """
 
@@ -93,6 +94,20 @@ class DojoInterface (cmd.Cmd):
 
         arg.update(dict(load_people=True))
         print(handle(arg))
+
+    @docopt_cmd
+    def do_save_state(self, arg):
+        """Usage: save_state [--db=sqlite_database] """
+
+        arg.update(dict(save_state=True))
+        print(handle(arg))
+
+    @docopt_cmd
+    def do_load_state(self, arg):
+        """Usage: load_state <sqlite_database> """
+
+        arg.update(dict(load_state=True))
+        print(print(arg))
 
     def do_quit(self, arg):
         """Quits out of Interactive Mode."""
